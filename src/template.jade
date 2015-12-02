@@ -1,0 +1,214 @@
+doctype html
+html(lang="en")
+    head
+        title= page_title
+        link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css')
+        style.
+            body {
+                background: #F5F5F5;
+            }
+
+            .well {
+                border: 1px solid #EEEEEE;
+                background: #fff;
+                box-shadow: 0 1px 1px rgba(0,0,0,.05);
+                padding: 10px;
+                padding-top: 0;
+            }
+
+            .title {
+                border-bottom: 1px solid #eee;
+                cursor: pointer;
+            }
+
+            .title label {
+                margin-top: 27px;
+                margin-left: 10px
+            }
+
+            circle {
+                fill: #ccc;
+                stroke: #333;
+                stroke-width: 1.5px;
+            }
+
+            text {
+                font: 10px sans-serif;
+                pointer-events: none;
+                text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+            }
+
+            .link {
+                fill: none;
+                stroke: #666;
+                stroke-width: 1.5px;
+            }
+
+            .__close {
+                height: 71px;
+                overflow: hidden;
+            }
+
+            .__close .title {
+                border:0 none;
+            }
+
+    body
+        .container
+            h1
+                =page_title
+            .well
+                #graph
+            each service, service_name in docker_compose
+                a(name=service_name)
+                div(class="well __close", onclick="this.classList.toggle('__close')")
+                    div(class="title clearfix")
+                        h3(class="pull-left")
+                            =service_name + " "
+                        if service.image
+                            label(class="label label-info pull-left")
+                                = "image: " + service.image
+                        else if service.build
+                            label(class="label label-info pull-left")
+                                = "build: " + service.build
+
+                    if service.volumes
+                        h4 Volumes
+                        table(class="table")
+                            thead
+                                tr
+                                    th Host
+                                    th Container
+                                    th Mode
+                            each volume in service.volumes
+                                tr
+                                    each volumeItem in volume
+                                        td
+                                            =volumeItem
+
+                    div(class='row')
+                        div(class='col-sm-4')
+                            if service.ports
+                                h4 Ports
+                                table(class="table")
+                                    thead
+                                        tr
+                                            th Host
+                                            th Container
+                                    each port in service.ports
+                                        tr
+                                            each portItem in port
+                                                td
+                                                    =portItem
+
+                        div(class='col-sm-4')
+                            if service.links
+                                h4 Links
+                                ul
+                                each link in service.links
+                                    li
+                                        a(href='#' + link)
+                                            =link
+                            if service.referrers.length > 0
+                                h4 Links referrers
+                                ul
+                                each link in service.referrers
+                                    li
+                                        a(href='#' + link)
+                                            =link
+
+        script(src="https://d3js.org/d3.v3.min.js")
+
+        script
+            | var links = [
+
+            each service, service_name in docker_compose
+                if service.links
+                    each link in service.links
+                        | {"source" : "#{service_name}", "target" : "#{link[0]}"},
+
+            | ]
+
+        script.
+            var nodes = {};
+
+            // Compute the distinct nodes from the links.
+            links.forEach(function (link)
+            {
+                link.source = nodes[link.source] || (nodes[link.source] = {name: link.source});
+                link.target = nodes[link.target] || (nodes[link.target] = {name: link.target});
+            });
+
+            var width = 960,
+                height = 300;
+
+            var force = d3.layout.force()
+                    .nodes(d3.values(nodes))
+                    .links(links)
+                    .size([width, height])
+                    .linkDistance(60)
+                    .charge(-300)
+                    .on("tick", tick)
+                    .start();
+
+            var svg = d3.select("#graph").append("svg")
+                    .attr("width", '100%')
+                    .attr("height", height);
+
+            // Per-type markers, as they don't inherit styles.
+            svg.append("defs").selectAll("marker")
+                    .data([])
+                    .enter().append("marker")
+                    .attr("id", function (d)
+                    {
+                        return d;
+                    })
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 15)
+                    .attr("refY", -1.5)
+                    .attr("markerWidth", 6)
+                    .attr("markerHeight", 6)
+                    .attr("orient", "auto")
+                    .append("path")
+                    .attr("d", "M0,-5L10,0L0,5");
+
+            var path = svg.append("g").selectAll("path")
+                    .data(force.links())
+                    .enter().append("path");
+
+            var circle = svg.append("g").selectAll("circle")
+                    .data(force.nodes())
+                    .enter().append("circle")
+                    .attr("r", 20)
+                    .call(force.drag);
+
+            var text = svg.append("g").selectAll("text")
+                    .data(force.nodes())
+                    .enter().append("text")
+                    .attr("x", -8)
+                    .attr("y", 30)
+                    .text(function (d)
+                    {
+                        return d.name;
+                    });
+
+            // Use elliptical arc path segments to doubly-encode directionality.
+            function tick()
+            {
+                path.attr("d", linkArc);
+                circle.attr("transform", transform);
+                text.attr("transform", transform);
+            }
+
+            function linkArc(d)
+            {
+                var dx = d.target.x - d.source.x,
+                        dy = d.target.y - d.source.y,
+                        dr = Math.sqrt(dx * dx + dy * dy);
+                return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
+            }
+
+            function transform(d)
+            {
+                return "translate(" + d.x + "," + d.y + ")";
+            }

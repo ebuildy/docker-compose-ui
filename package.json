@@ -1,0 +1,28 @@
+{
+    "name": "docker-compose-ui",
+    "version": "0.0.1",
+    "description": "A simple command line to convert a docker compose YML to a beautiful HTML.",
+    "keywords": [
+        "docker",
+        "compose",
+        "fig",
+        "ui"
+    ],
+    "author": "Thomas Decaux <ebuildy@gmail.com>",
+    "main": "./src/docker-compose-ui.js",
+    "dependencies": {
+        "yamljs": "^0.2.4",
+        "argparse": "^0.1.15",
+        "jade" : "1.11.0"
+    },
+    "devDependencies": {
+    },
+    "bin": {
+        "docker-compose-ui": "./bin/docker-compose-ui"
+    },
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/ebuildy/docker-compose-ui.git"
+    }
+}
