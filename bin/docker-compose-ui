@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var YAML    = require('yamljs'),
     jade    = require('jade'),
     fs      = require('fs'),
